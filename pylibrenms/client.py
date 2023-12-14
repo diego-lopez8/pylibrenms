@@ -2,6 +2,7 @@
 Client for LibreNMS
 """
 import requests
+import json
 
 class Librenms:
 
@@ -32,15 +33,15 @@ class Librenms:
             response = requests.get(endpoint, headers=self._headers, params=params)
             return response.json()
         except requests.exceptions.RequestException as e:
-            # TODO: fix up these exceptions
-            print(f"Error occurred: {e}")
+            # TODO: implement an exception here
+            raise Exception(f"Error occurred, {e}")
 
     def get_all_ports(self, columns=None):
         """
         Get all ports on all devices.
 
         Parameters:
-            - columns: columns to filter on.
+            - columns: columns to filter on. None means return all columns.  
         """
         return self._get("ports", columns=columns)
 
@@ -51,12 +52,12 @@ class Librenms:
         Parameters:
             - field: a list of fields to search. Can be ifAlias, ifDescr, ifName, or all.
             - search_string: the string to search. 
-            - columns: columns to filter on. 
+            - columns: columns to filter on. None means return all columns.  
         """
 
         if field not in ["ifAlias", "ifDescr", "ifName", "all"]:
             # TODO: implement exception
-            print("Error!")
+            raise Exception(f"Error occurred!")
         if field == "all":
             return self._get("ports/search/" + str(search_string), columns=columns)
         else:
@@ -71,10 +72,17 @@ class Librenms:
         Returns port information given a specific Port ID.
 
         Parameters:
-            - port_id : a port ID
+            - port_id : a port ID.
         """
 
         return self._get("ports/" + str(port_id), columns=None)
     
-    def get_port_ip_info(self,):
-        ...
+    def get_port_ip_info(self, port_id):
+        """
+        Returns all Ipv4 and Ipv6 information for a given port ID.
+
+        Parameters:
+            - port_id: a port ID.
+        """
+
+        return self._get("ports/" + str(port_id) + "/ip")

@@ -86,3 +86,42 @@ class Librenms:
         """
 
         return self._get("ports/" + str(port_id) + "/ip")
+    
+    def del_device(self, ):
+        ...
+    
+    def get_device(self, hostname):
+        """
+        Get details of a given device.
+
+        Parameters:
+            - hostname: either the device hostname or ID
+
+        NOTE: hostname is the IP Address or DNS name of the device, libreNMS stores the actual hostname in sysName.
+        """
+
+        return self._get("devices/" + str(hostname))
+
+    def discover_device(self, hostname):
+        """
+        Trigger a discovery of given device.
+
+        Parameters:
+            - hostname: either the device hostname or ID
+
+        NOTE: hostname is the IP Address or DNS name of the device, libreNMS stores the actual hostname in sysName.
+        """
+
+        return self._get("devices/" + str(hostname) + "/discover")
+    
+    def availability(self, hostname):
+        """
+        Get calculated availabilities of given device.
+
+        Parameters:
+            - hostname: either the device hostname or ID
+
+        NOTE: hostname is the IP Address or DNS name of the device, libreNMS stores the actual hostname in sysName.        
+        """
+
+        return self._get("devices/" + str(hostname) + "/availability")

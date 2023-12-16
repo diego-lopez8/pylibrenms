@@ -3,6 +3,7 @@ Client for LibreNMS
 """
 import requests
 import json
+import logging
 
 class Librenms:
 
@@ -20,21 +21,39 @@ class Librenms:
         self._api_key = api_key
         self._headers = {"X-Auth-Token": self._api_key}
 
-    def _get(self, route, columns=None):
+    def _get(self, route, params=None):
         """
-        'GET" call to be used by all functions. 
+        'GET" call to be used by endpoints. 
         """
         endpoint = self.url + route
-        params = {}
+        if params is None:
+            params = {}
+        else:
+            for key, value in params.items():
+                if isinstance(value, list):
+                    params[key] = ','.join(value)            
         # TODO: figure out if supporting strings or lists as columns is a good idea, just testing with lists now
-        if columns:
-            params['columns'] = ','.join(columns) if isinstance(columns, list) else columns
         try:
             response = requests.get(endpoint, headers=self._headers, params=params)
             return response.json()
         except requests.exceptions.RequestException as e:
-            # TODO: implement an exception here
+            # TODO: implement exception here
             raise Exception(f"Error occurred, {e}")
+        
+    def _post(self, route, data=None):
+        """
+        POST call to be used by endpoints.
+        """
+        endpoint = self.url + route
+        print(endpoint)
+        if data is None:
+            data = {}
+        try:
+            response = requests.post(endpoint, headers=self._headers, json=data)
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            # TODO: implement exception here
+            raise Exception(f"Error occurred, {e}")        
 
     def get_all_ports(self, columns=None):
         """
@@ -43,7 +62,7 @@ class Librenms:
         Parameters:
             - columns: columns to filter on. None means return all columns.  
         """
-        return self._get("ports", columns=columns)
+        return self._get("ports", params={"columns": columns})
 
     def search_ports(self, field, search_string, columns=None):
         """
@@ -62,7 +81,7 @@ class Librenms:
             return self._get("ports/search/" + str(search_string), columns=columns)
         else:
             # fields is any of the remaining ifAlias, ifDescr, ifName
-            return self._get("ports/search/" + str(field) + "/" + str(search_string), columns=columns)
+            return self._get("ports/search/" + str(field) + "/" + str(search_string), params={"columns": columns})
 
     def ports_with_associated_mac(self,):
         ...
@@ -75,7 +94,7 @@ class Librenms:
             - port_id : a port ID.
         """
 
-        return self._get("ports/" + str(port_id), columns=None)
+        return self._get("ports/" + str(port_id))
     
     def get_port_ip_info(self, port_id):
         """
@@ -125,3 +144,51 @@ class Librenms:
         """
 
         return self._get("devices/" + str(hostname) + "/availability")
+    
+    def outages(self, hostname):
+        """
+        Get detected outages of given device.
+
+        Parameters:
+            - hostname: either the device hostname or ID
+
+        NOTE: hostname is the IP Address or DNS name of the device, libreNMS stores the actual hostname in sysName.        
+        """
+
+        return self._get("devices/" + str(hostname) + "/outages")
+    
+    def get_components(self, hostname, component_type=None, component_id=None, component_label=None, component_status=None, component_disabled=None, component_ignore=None):
+        """
+        Get a list of components for a particular device.
+
+        Parameters:
+            - hostname: either the device hostname or ID
+            - component_type: Filter the result by type (Equals).
+            - component_id: Filter the result by id (Equals).
+            - component_label: Filter the result by label (Contains).
+            - component_status: Filter the result by status (Equals).
+            - component_disabled: Filter the result by disabled (Equals).
+            - component_ignore: Filter the result by ignore (Equals).
+        """
+        
+        params = {
+            "type": component_type, 
+            "id": component_id,
+            "label": component_label,
+            "status": component_status,
+            "disabled": component_disabled,
+            "ignore": component_ignore
+        }
+        return self._get("devices/" + str(hostname) + "/components", params=params)
+    
+    def add_components(self, hostname, component_type):
+        """
+        Create a new component of a type on a particular device.
+
+        Parameters: 
+            - hostname: either the device hostname or ID
+            - component_type: type of component to add. 
+        
+        """
+
+        return self._post("devices/" + str(hostname) + "/components/" + str(component_type))

@@ -26,8 +26,7 @@ class Librenms:
         'GET" call to be used by endpoints. 
         """
         endpoint = self.url + route
-        if params is None:
-            params = {}
+        if params is None: params = {}
         else:
             for key, value in params.items():
                 if isinstance(value, list):
@@ -45,8 +44,7 @@ class Librenms:
         POST call to be used by endpoints.
         """
         endpoint = self.url + route
-        if data is None:
-            data = {}
+        if data is None: data = {}
         try:
             response = requests.post(endpoint, headers=self._headers, json=data)
             return response.json()
@@ -59,8 +57,7 @@ class Librenms:
         POST call to be used by endpoints.
         """
         endpoint = self.url + route
-        if data is None:
-            data = {}
+        if data is None: data = {}
         try:
             response = requests.delete(endpoint, headers=self._headers, json=data)
             return response.json()
@@ -225,8 +222,20 @@ class Librenms:
         
         Parameters:
             - device_type: Monitoring method for a device. Can be icmp, snmpv1, snmpv2c, snmpv3
-            - hostname: device hostname or IP
-            - community: Required for snmpv2c. Community string to use.
+            - hostname: (all, required) device hostname or IP
+            - display: (all, optional) A string to display as the name of the device, defaults to hostname
+            - port: (snmpv1, snmpv2c, snmpv3, optional) SNMP port, defaults to port defined in config
+            - transport: (snmpv1, snmpv2c, snmpv3, optional) SNMP protocol, defaults to transport defined in config
+            - community: (snmpv1, snmpv2c, required) Community string to use.
+            - authlevel: (snmpv3, required) SNMP Authlevel, can be `noAuthNoPriv`, `authNoPriv`, `authPriv`
+            - authname: (snmpv3, required) Auth username
+            - authpass: (snmpv3, required) Auth password
+            - authalgo: (snmpv3, required) Auth algorithm, can be `MD5`, `SHA`, `SHA-224`, `SHA-256`, `SHA-384`, `SHA-512`
+            - cryptopass: (snmpv3, required) SNMP crypto password
+            - cryptoalgo: (snmpv3, required) SNMP crypto algorithm, can be `AES`, `DES`
+            - os: (icmp, optional) OS short name for the device
+            - sysName: (icmp, optional) sysName for the device
+            - hardware: (icmp, optional) device hardware
         """
 
         # define parameter dictionaries
@@ -255,6 +264,7 @@ class Librenms:
             # ignore other parameters
             if param in kwargs.keys():
                 data[param] = kwargs[param]
+        # handle snmpver
         if device_type == "icmp": 
             data["snmp_disable"] = "true"
         elif device_type == "snmpv1":

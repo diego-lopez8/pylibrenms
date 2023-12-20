@@ -45,7 +45,6 @@ class Librenms:
         POST call to be used by endpoints.
         """
         endpoint = self.url + route
-        print(endpoint)
         if data is None:
             data = {}
         try:
@@ -54,6 +53,20 @@ class Librenms:
         except requests.exceptions.RequestException as e:
             # TODO: implement exception here
             raise Exception(f"Error occurred, {e}")        
+
+    def _delete(self, route, data=None):
+        """
+        POST call to be used by endpoints.
+        """
+        endpoint = self.url + route
+        if data is None:
+            data = {}
+        try:
+            response = requests.delete(endpoint, headers=self._headers, json=data)
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            # TODO: implement exception here
+            raise Exception(f"Error occurred, {e}")     
 
     def get_all_ports(self, columns=None):
         """
@@ -106,8 +119,15 @@ class Librenms:
 
         return self._get("ports/" + str(port_id) + "/ip")
     
-    def del_device(self, ):
-        ...
+    def del_device(self, hostname):
+        """
+        Delete a given device.
+
+        Parameters:
+            - hostname: either the device hostname or ID
+        """
+
+        return self._delete("devices/" + str(hostname))
     
     def get_device(self, hostname):
         """
@@ -170,7 +190,7 @@ class Librenms:
             - component_disabled: Filter the result by disabled (Equals).
             - component_ignore: Filter the result by ignore (Equals).
         """
-        
+
         params = {
             "type": component_type, 
             "id": component_id,
@@ -192,3 +212,55 @@ class Librenms:
         """
 
         return self._post("devices/" + str(hostname) + "/components/" + str(component_type))
+    
+    def edit_components(self, ):
+        ...
+
+    def delete_components(self, ):
+        ...
+
+    def add_device(self, hostname, device_type="snmpv2c", **kwargs):
+        """
+        Add a device. 
+        
+        Parameters:
+            - device_type: Monitoring method for a device. Can be icmp, snmpv1, snmpv2c, snmpv3
+            - hostname: device hostname or IP
+            - community: Required for snmpv2c. Community string to use.
+        """
+
+        # define parameter dictionaries
+        required_params = {
+            "icmp" : [],
+            "snmpv1": ["community"],
+            "snmpv2c": ["community"],
+            "snmpv3": ["authlevel", "authname", "authpass", "authalgo", "cryptopass", "cryptoalgo"]
+        }
+        optional_params = {
+            "icmp": ["os", "sys_name", "hardware", "force_add", "location", "poller_group", "display"],
+            "snmpv1": ["port", "transport", "port_association_mode", "location", "force_add", "display"],
+            "snmpv2c": ["port", "transport", "port_association_mode", "location", "force_add", "display"],
+            "snmpv3": ["port", "transport", "port_association_mode", "location", "force_add", "display"],
+        }
+        data = {'hostname': hostname}
+        # validation
+        if device_type not in required_params.keys():
+            raise Exception(f"Unknown device type {device_type}.")
+        for param in required_params[device_type]:
+            if param not in kwargs.keys():
+                raise Exception(f"Missing parameter {param} for device type {device_type}.")
+            else:
+                data[param] = kwargs[param]
+        for param in optional_params[device_type]:
+            # ignore other parameters
+            if param in kwargs.keys():
+                data[param] = kwargs[param]
+        if device_type == "icmp": 
+            data["snmp_disable"] = "true"
+        elif device_type == "snmpv1":
+            data['snmpver'] = "v1"
+        elif device_type == "snmpv2c":
+            data["snmpver"] = "v2c"
+        else: 
+            data['snmpver'] = "v3"
+        return self._post("devices", data=data)

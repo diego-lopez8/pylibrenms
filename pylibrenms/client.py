@@ -106,8 +106,19 @@ class Librenms:
             # fields is any of the remaining ifAlias, ifDescr, ifName
             return self._get("ports/search/" + str(field) + "/" + str(search_string), params={"columns": columns})
 
-    def ports_with_associated_mac(self,):
-        ...
+    def ports_with_associated_mac(self, mac, search_filter=None):
+        """
+        Search for ports matching the search mac.
+
+        Parameters:
+            mac: MAC Address to search for
+            search_filter: Add filter to the search. Optional.
+        """
+        params = {
+            "filter": search_filter
+        }
+
+        return self._get("ports/mac/" + str(mac), params=params)
 
     def get_port_info(self, port_id):
         """

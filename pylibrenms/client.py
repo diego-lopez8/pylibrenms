@@ -39,6 +39,19 @@ class Librenms:
             # TODO: implement exception here
             raise Exception(f"Error occurred, {e}")
         
+    def _patch(self, route, data=None):
+        """
+        PATCH call to be used by endpoints.
+        """
+        endpoint = self.url + route
+        if data is None: data = {}
+        try:
+            response = requests.patch(endpoint, headers=self._headers, json=data)
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            # TODO: implement exception here
+            raise Exception(f"Error occurred, {e}")              
+        
     def _post(self, route, data=None):
         """
         POST call to be used by endpoints.
@@ -274,3 +287,70 @@ class Librenms:
         else: 
             data['snmpver'] = "v3"
         return self._post("devices", data=data)
+    
+    def list_oxidized(self, hostname=None):
+        """
+        List devices for used with Oxidized
+
+        Parameters:
+            - hostname: Hostname or device IP. Optional.
+        """
+
+        if not hostname: hostname = ""
+        return self._get("oxidized/" + str(hostname))
+    
+    def rename_device(self, hostname, new_hostname):
+        """
+        Rename a device. 
+        
+        WARNING: This changes the actual hostname, not the display name. Be sure you actually want this. 
+        Parameters:
+            - hostname: device hostname or ID
+            - new_hostname: new device hostname
+        """
+        
+        return self._patch("devices/" + str(hostname) + "/rename/" + str(new_hostname))
+    
+
+    def get_port_stack(self, hostname, valid_mappings=False):
+        """
+        Get a list of port mappings for a device. This is useful for 
+        showing physical ports that are in a virtual port-channel.
+
+        Parameters:
+            - hostname: can be either the device hostname or id
+            - valid_mappings (Optional): Filter the result by only showing valid mappings ("0" values not shown).
+        """
+
+        if valid_mappings:
+            return self._get("devices/" + str(hostname) + "/port_stack", params={"valid_mappings": ""})
+        return self._get("devices/" + str(hostname) + "/port_stack")
+    
+    def get_device_groups(self, hostname):
+        """
+        List the device groups that a device is matched on.
+
+        Parameters:
+            - hostname: either the device hostname or id
+        """
+
+        return self._get("devices/" + str(hostname) + "/groups")
+    
+    def add_parents_to_host(self, hostname, parent_ids):
+        """
+        Add one or more parents to a host.
+
+        Parameters
+            - hostname: either the device hostname or id
+            - parent_ids: a list of parent ids or hostnames, or a single string for a single parent.
+        """
+
+        # TODO: Implement check for parent to be either a list or some sort of iterable?
+        if isinstance(parent_ids, list):
+            parent_ids = ','.join(map(str, parent_ids))
+        data = {"parent_ids": parent_ids}
+        return self._post("devices/" + str(hostname) + "/parents", data=data)
+
+    
+    def delete_parents_from_host(self,):
+        ...

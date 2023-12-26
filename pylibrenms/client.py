@@ -362,6 +362,66 @@ class Librenms:
         data = {"parent_ids": parent_ids}
         return self._post("devices/" + str(hostname) + "/parents", data=data)
 
-    
     def delete_parents_from_host(self,):
         ...
+
+    def get_inventory(self, hostname, ent_physical_class=None, ent_physical_contained_in=None):
+        """
+        Retrieve the inventory for a device. 
+        
+        Parameters:
+            - hostname: either the device hostname or the device id
+            - entPhysicalClass (Optional) restrict the class of the inventory
+            - entPhysicalContainedIn (Optional) retrieve items within the inventory assigned to a previous component
+        """
+        params = {
+            "entPhysicalClass": ent_physical_class,
+            "entPhysicalContainedIn" : ent_physical_contained_in
+        }
+
+        return self._get("inventory/" + str(hostname), params=params)    
+
+    def get_inventory_for_device(self, hostname):
+        """
+        Retrieve the flattened inventory for a device
+        
+        Parameters:
+            - hostname: either the device hostname or the device id
+        """
+
+        return self._get("inventory/" + str(hostname) + "/all")    
+    
+    def get_graphs(self, hostname):
+        """
+        Get a list of available graphs for a device, this does not include ports.
+
+        Parameters:
+            - hostname: either the device hostname or id
+        """
+
+        return self._get("devices/" + str(hostname) + "/graphs")
+    
+    def system(self):
+        """
+        Display Librenms instance information.        
+        """
+
+        return self._get("system")
+    
+    def list_available_health_graphs(self, hostname, health_type=None, sensor_id=None):
+        """
+        Get a list of overall health graphs available, or get a list of health graphs based on provided class, or get the health sensors information based on ID.
+
+        Parameters:
+            - hostname: either the device hostname or id
+            - health_type: Optional. Health type / sensor class
+            - sensor_id: Optional. Sensor id to retrieve specific information
+        """
+
+        route = "devices/" + str(hostname) + "/health/"
+        if health_type:
+            route += str(health_type) + "/"
+        if sensor_id:
+            route += str(sensor_id)
+
+        return self._get(route)

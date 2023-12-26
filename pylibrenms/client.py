@@ -374,11 +374,11 @@ class Librenms:
             - entPhysicalClass (Optional) restrict the class of the inventory
             - entPhysicalContainedIn (Optional) retrieve items within the inventory assigned to a previous component
         """
+
         params = {
             "entPhysicalClass": ent_physical_class,
             "entPhysicalContainedIn" : ent_physical_contained_in
         }
-
         return self._get("inventory/" + str(hostname), params=params)    
 
     def get_inventory_for_device(self, hostname):
@@ -423,5 +423,69 @@ class Librenms:
             route += str(health_type) + "/"
         if sensor_id:
             route += str(sensor_id)
-
         return self._get(route)
+
+    def list_locations(self):
+        """
+        Return a list of locations.
+        """
+
+        return self._get("resources/locations")
+    
+    def add_location(self, location_name, latitude=None, longitude=None, fixed_coordinates=None):
+        """
+        Add a new location.
+
+        Parameters:
+            - location_name: Name of the location
+            - latitude: latitude
+            - longitude: longitude
+            - fixed_coordinates: 0 if updated from the device or 1 if the coordinate is fixed
+        """
+
+        data = {
+            "location": location_name,
+            "lat": latitude if latitude else "None",
+            "lng": longitude if longitude else "None",
+            "fixed_coordinates": fixed_coordinates
+        }
+        return self._post("locations", data=data)
+    
+
+    def delete_location(self, location_name):
+        """
+        Deletes an existing location. 
+
+        Parameters:
+            - location_name: name or ID of the location to delete. 
+        """
+
+        return self._delete("locations/" + str(location_name))
+    
+
+    def edit_location(self, location_name, latitude=None, longitude=None): 
+        """
+        Edit a location.
+
+        Parameters:
+            - location_name: name or ID of the location to edit
+            - latitude: latitude
+            - longitude: longitude
+        """
+        
+        data = {}
+        if latitude is not None:
+            data['lat'] = latitude
+        if longitude is not None:
+            data['lng'] = longitude
+        return self._patch("locations/" + str(location_name), data=data)
+
+    def get_location(self, location_name):
+        """
+        Gets a specific location
+
+        Parameters:
+            - location_name: name or id of the location to get
+        """
+
+        return self._get("location/" + str(location_name))

@@ -472,7 +472,7 @@ class Librenms:
             - latitude: latitude
             - longitude: longitude
         """
-        
+
         data = {}
         if latitude is not None:
             data['lat'] = latitude
@@ -489,3 +489,74 @@ class Librenms:
         """
 
         return self._get("location/" + str(location_name))
+    
+    def get_devicegroups(self):
+        """
+        List all device groups.
+
+        Not to be confused with get_device_groups(), which gets the groups belonging only to a single device.
+        """
+
+        return self._get("devicegroups/")
+    
+    def add_devicegroup(self, group_name, group_type, description=None, rules=None, devices=None):
+        """
+        Add a new device group. Upon success, the ID of the new device group is returned and the HTTP response code is 201.
+
+        Parameters:
+            - group_name: (all, required) The name of the device group
+            - group_type: (all, required) should be static or dynamic. Setting this to static requires that the devices input be provided
+            - description(all, optional) Description of the device group
+            - rules: (dynamic, required)  required if type == dynamic - A set of rules to determine which devices should be included in this device group
+            - devices: (static, required) required if type == static - A list of devices that should be included in this group. This is a static list of devices
+        """
+
+        data = {
+            "name": group_name, 
+            "description": description,
+            "type": group_type
+        }
+        if group_type == "static":
+            if devices is None or rules is not None:
+                raise Exception("Devices must be set, rules cannot be set for STATIC group type.")
+            data["devices"] = devices
+        elif group_type == "dynamic":
+            if rules is None or devices is not None:
+                raise Exception("rules must be set, Devices cannot be set for DYNAMCI group type.")
+            data["rules"] = rules
+        else:
+            raise Exception(f"Unknown group type {group_type}")
+        return self._post("devicegroups", data=data)
+    
+    def get_devices_by_group(self, group_name, full=None):
+        """
+        List all devices matching the group provided.
+
+        Parameters:
+            - group_name: The name of the device group which can be obtained using get_devicegroups
+            - full: Set to True to enable full return of device information
+        """
+        params = {}
+        if full:
+            params["full"] = full
+        return self._get("devicegroups/" + str(group_name), params=params)
+
+    def maintenance_devicegroup(self, group_name, duration, title=None, notes=None, start=None):
+        """
+        Set a device group into maintenance mode.
+
+        Parameters:
+            - group_name: The name of the device group which can be obtained using get_devicegroups
+            - title: (Optional) Some title for the Maintenance
+            - notes: (Optional) Some description for the Maintenance
+            - start: (Optional) start time of Maintenance in full format Y-m-d H:i:00 eg: 2022-08-01 22:45:00
+            - duration (Required) Duration of Maintenance in format H:i / Hrs:Mins eg: 02:00
+        """
+
+        data = {
+            "title": title,
+            "notes": notes,
+            "start": start,
+            "duration": duration
+        }
+        return self._post("devicegroups/" + str(group_name) + "/maintenance", data=data)

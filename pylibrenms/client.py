@@ -7,7 +7,7 @@ import logging
 
 class Librenms:
 
-    def __init__(self, base_url, api_key):
+    def __init__(self, base_url, api_key, verify_ssl):
         """
         Creates a LibreNMS client. 
 
@@ -20,6 +20,7 @@ class Librenms:
         self.url = base_url + "api/v0/"
         self._api_key = api_key
         self._headers = {"X-Auth-Token": self._api_key}
+        self._verify = verify_ssl
 
     def _get(self, route, params=None):
         """
@@ -33,7 +34,7 @@ class Librenms:
                     params[key] = ','.join(value)            
         # TODO: figure out if supporting strings or lists as columns is a good idea, just testing with lists now
         try:
-            response = requests.get(endpoint, headers=self._headers, params=params)
+            response = requests.get(endpoint, headers=self._headers, params=params,verify=self._verify)
             return response.json()
         except requests.exceptions.RequestException as e:
             # TODO: implement exception here
@@ -46,7 +47,7 @@ class Librenms:
         endpoint = self.url + route
         if data is None: data = {}
         try:
-            response = requests.patch(endpoint, headers=self._headers, json=data)
+            response = requests.patch(endpoint, headers=self._headers, json=data, verify=self._verify)
             return response.json()
         except requests.exceptions.RequestException as e:
             # TODO: implement exception here
@@ -59,7 +60,7 @@ class Librenms:
         endpoint = self.url + route
         if data is None: data = {}
         try:
-            response = requests.post(endpoint, headers=self._headers, json=data)
+            response = requests.post(endpoint, headers=self._headers, json=data, verify=self._verify)
             return response.json()
         except requests.exceptions.RequestException as e:
             # TODO: implement exception here
@@ -72,7 +73,7 @@ class Librenms:
         endpoint = self.url + route
         if data is None: data = {}
         try:
-            response = requests.delete(endpoint, headers=self._headers, json=data)
+            response = requests.delete(endpoint, headers=self._headers, json=data, verify=self._verify)
             return response.json()
         except requests.exceptions.RequestException as e:
             # TODO: implement exception here
@@ -560,3 +561,81 @@ class Librenms:
             "duration": duration
         }
         return self._post("devicegroups/" + str(group_name) + "/maintenance", data=data)
+
+    def list_bgp(self, hostname=None, asn=None, remote_asn=None, remote_address=None, local_address=None, 
+                 bgp_descr=None, bgp_state=None, bgp_adminstate=None, bgp_family=None):
+        """
+        List current BGP sessions.
+        All parameters are optional.
+
+        Parameters:
+            - hostname: Either the devices hostname or ID
+            - asn: The local ASN you would like to filter by
+            - remote_asn: Filter by remote peer ASN
+            - remote_address: Filter by remote peer address
+            - local_address: Filter by local address
+            - bgp_descr: Filter by BGP neighbor description
+            - bgp_state: Filter by BGP session state (like established,idle...)
+            - bgp_adminstate: Filter by BGP admin state (start,stop,running...)
+            - bgp_family: Filter by BGP address Family (4,6)        
+        """
+
+        params = {
+            "hostname": hostname,
+            "asn": asn,
+            "remote_asn": remote_asn,
+            "remote_address": remote_address,
+            "local_address": local_address,
+            "bgp_descr": bgp_descr,
+            "bgp_state": bgp_state,
+            "bgp_adminstate": bgp_adminstate,
+            "bgp_family": bgp_family
+        }
+        return self._get("bgp", params=params)
+    
+    def get_bgp(self, bgp_id):
+        """
+        Retrieves a BGP session by ID
+
+        Parameters:
+            - bgp_id: bgp ID
+        """
+
+        return self._get("bgp/" + str(bgp_id))
+    
+    def list_devices(self, device_type, query=None):
+        """
+        Returns a list of devices.
+
+        Parameters:
+            type: can be one of the following to filter or search by:
+                filters:
+                    all: All devices
+                    active: Only not ignored and not disabled devices
+                    ignored: Only ignored devices
+                    up: Only devices that are up
+                    down: Only devices that are down
+                Searchable:
+                    os: search by os type
+                    mac: search by mac address
+                    ipv4: search by IPv4 address
+                    ipv6: search by IPv6 address (compressed or uncompressed)
+                    location: search by location
+                    location_id: serach by locaiton_id
+                    hostname: search by hostname
+                    sysName: search by sysName
+                    display: search by display name
+                    device_id: exact match by device-id
+                    type: search by device type
+        """
+
+        if device_type in ["all", "active", "ignored", "up", "down"] and query is not None:
+            raise Exception(f"Device type {device_type} cannot have a query string.")
+        elif device_type in ["os", "mac", "ipv4", "ipv6", "location", 
+                             "location_id", "hostname", "sysName", "display", "device_id", "type"] and query is None:
+            raise Exception(f"Device type {device_type} needs a query string.")
+        params = {
+            "type": device_type,
+            "query": query
+        }
+        return self._get("devices", params=params)
